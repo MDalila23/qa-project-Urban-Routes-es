@@ -1,58 +1,8 @@
 import data
+import time
+from pages import UrbanRoutesPage
+from helpers import retrieve_phone_code
 from selenium import webdriver
-from selenium.webdriver import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
-
-
-# no modificar
-def retrieve_phone_code(driver) -> str:
-    """Este código devuelve un número de confirmación de teléfono y lo devuelve como un string.
-    Utilízalo cuando la aplicación espere el código de confirmación para pasarlo a tus pruebas.
-    El código de confirmación del teléfono solo se puede obtener después de haberlo solicitado en la aplicación."""
-
-    import json
-    import time
-    from selenium.common import WebDriverException
-    code = None
-    for i in range(10):
-        try:
-            logs = [log["message"] for log in driver.get_log('performance') if log.get("message")
-                    and 'api/v1/number?number' in log.get("message")]
-            for log in reversed(logs):
-                message_data = json.loads(log)["message"]
-                body = driver.execute_cdp_cmd('Network.getResponseBody',
-                                              {'requestId': message_data["params"]["requestId"]})
-                code = ''.join([x for x in body['body'] if x.isdigit()])
-        except WebDriverException:
-            time.sleep(1)
-            continue
-        if not code:
-            raise Exception("No se encontró el código de confirmación del teléfono.\n"
-                            "Utiliza 'retrieve_phone_code' solo después de haber solicitado el código en tu aplicación.")
-        return code
-
-
-class UrbanRoutesPage:
-    from_field = (By.ID, 'from')
-    to_field = (By.ID, 'to')
-
-    def __init__(self, driver):
-        self.driver = driver
-
-    def set_from(self, from_address):
-        self.driver.find_element(*self.from_field).send_keys(from_address)
-
-    def set_to(self, to_address):
-        self.driver.find_element(*self.to_field).send_keys(to_address)
-
-    def get_from(self):
-        return self.driver.find_element(*self.from_field).get_property('value')
-
-    def get_to(self):
-        return self.driver.find_element(*self.to_field).get_property('value')
-
 
 
 class TestUrbanRoutes:
@@ -65,16 +15,107 @@ class TestUrbanRoutes:
         from selenium.webdriver import DesiredCapabilities
         capabilities = DesiredCapabilities.CHROME
         capabilities["goog:loggingPrefs"] = {'performance': 'ALL'}
-        cls.driver = webdriver.Chrome(desired_capabilities=capabilities)
+        #cls.driver = webdriver.Chrome(desired_capabilities=capabilities)
+        cls.driver = webdriver.Chrome()
+        cls.driver.get(data.urban_routes_url)
 
     def test_set_route(self):
-        self.driver.get(data.urban_routes_url)
         routes_page = UrbanRoutesPage(self.driver)
+        time.sleep(10)
         address_from = data.address_from
         address_to = data.address_to
         routes_page.set_route(address_from, address_to)
         assert routes_page.get_from() == address_from
         assert routes_page.get_to() == address_to
+
+    def test_seleccionar_confort(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        time.sleep(5)
+        routes_page.click_boton_flash()
+        routes_page.click_boton_carrito()
+        routes_page.click_boton_pedir_un_taxi()
+        time.sleep(3)
+        routes_page.click_boton_comfort()
+        assert  routes_page.leer_boton_comfort() == "Comfort"
+
+    def test_rellenar_telefono(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        time.sleep(2)
+        routes_page.click_boton_numero_de_telefono()
+        time.sleep(2)
+        numero = data.phone_number
+        routes_page.escribir_numero_de_telefono(numero)
+        assert routes_page.leer_numero_de_telefono() == numero
+        routes_page.click_siguiente_telefono()
+        time.sleep(2)
+        codigo = retrieve_phone_code(self.driver)
+        routes_page.escribe_codigo(codigo)
+        assert routes_page.leer_codigo() == codigo
+        routes_page.presionar_tecla_tabulador()
+        routes_page.click_confirmar_codigo()
+        time.sleep(5)
+
+    def test_agregar_tarjeta_de_credito(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.click_boton_metodo_de_pago()
+        time.sleep(2)
+        routes_page.click_boton_agregar_tarjeta()
+        time.sleep(2)
+        tarjeta = data.card_number
+        routes_page.escribir_tarjeta(tarjeta)
+        assert routes_page.leer_tarjeta() == tarjeta
+        time.sleep(2)
+
+    def test_codigo_cvv(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        cvv = data.card_code
+        routes_page.escribir_cvv(cvv)
+        assert routes_page.leer_cvv() == cvv
+        time.sleep(2)
+        routes_page.presionar_tecla_tabulador_cvv()
+        time.sleep(2)
+        routes_page.click_aceptar_agregar_tarjeta()
+        time.sleep(2)
+        routes_page.click_boton_salir_agregar_tarjeta()
+
+    def test_escribir_mensaje_controlador(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        time.sleep(5)
+        mensaje = data.message_for_driver
+        routes_page.escribir_mensaje_chofer(mensaje)
+        assert routes_page.leer_mensaje_chofer() == mensaje
+        time.sleep(2)
+
+    def test_pedir_manta_y_panuelos(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.click_manta()
+        assert routes_page.revisar_check_manta() == True
+        time.sleep(2)
+
+    def test_pedir_helados(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.click_agregar_helado()
+        time.sleep(2)
+        routes_page.click_agregar_helado()
+        time.sleep(2)
+        assert routes_page.leer_valor_helado() == "2"
+
+    def test_modal_buscar_taxi(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        routes_page.click_boton_pedir_taxi_final()
+        time.sleep(5)
+        texto_leido = routes_page.leer_texto_buscando_automovil()
+        assert texto_leido == "Buscar automóvil"
+
+    def test_cambia_modal_buscar_taxi(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        time.sleep(35)
+        texto_leido_despues = routes_page.leer_texto_buscando_automovil()
+        assert texto_leido_despues != "Buscar automóvil"
+
+    def test_datos_conductor(self):
+        routes_page = UrbanRoutesPage(self.driver)
+        assert routes_page.leer_nombre_conductor() != ""
 
 
     @classmethod
