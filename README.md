@@ -27,7 +27,7 @@ El objetivo es verificar el flujo completo de reserva de un viaje urbano, desde 
 ✅ Aparece el nombre del conductor
 
 ##  Instalación de este proyecto.
-1. Clona este repositorio (utiliza el tutorial de github)
+1. Clona este repositorio usando el comando "git clone https://github.com/MDalila23/qa-project-Urban-Routes-es.git"                
 2. Configura tu ambiente virutal de desarrollo: Si utilizas pycharm esto se hace en automático al crear el proyecto, si utilizas otro IDE usa el siguiente comando desde la consola
     'python -m venv .venv' 
 3. Instala las dependencias/frameworks utilizados en este proyecto con el siguiente comando:
