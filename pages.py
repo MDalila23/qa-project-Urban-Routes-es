@@ -1,5 +1,11 @@
+import time
+
 from selenium.webdriver import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from helpers import retrieve_phone_code
+
 
 class UrbanRoutesPage:
     from_field = (By.ID, 'from')
@@ -140,5 +146,54 @@ class UrbanRoutesPage:
         return self.driver.find_element(*self.nombre_conductor).text
 
     def set_route(self,from_address,to_address):
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.from_field))
         self.set_from(from_address)
         self.set_to(to_address)
+
+    def set_comfort(self):
+        self.click_boton_flash()
+        self.click_boton_carrito()
+        self.click_boton_pedir_un_taxi()
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.boton_comfort))
+        self.click_boton_comfort()
+
+    def set_numero_de_telefono(self,numero):
+        self.click_boton_numero_de_telefono()
+        self.escribir_numero_de_telefono(numero)
+
+    def set_codigo(self):
+        self.click_siguiente_telefono()
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.code))
+        codigo = retrieve_phone_code(self.driver)
+        self.escribe_codigo(codigo)
+        return codigo
+
+    def salir_de_telefono(self):
+        self.presionar_tecla_tabulador()
+        self.click_confirmar_codigo()
+
+    def set_tarjeta_de_credito(self,tarjeta):
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.boton_metodo_de_pago))
+        self.click_boton_metodo_de_pago()
+        self.click_boton_agregar_tarjeta()
+        self.escribir_tarjeta(tarjeta)
+
+    def salir_tarjeta_de_credito(self):
+        time.sleep(2)
+        self.presionar_tecla_tabulador_cvv()
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.boton_aceptar_agregar_tarjeta))
+        self.click_aceptar_agregar_tarjeta()
+        WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.boton_salir_agregar_tarjeta))
+        self.click_boton_salir_agregar_tarjeta()
+
+    def agregar_dos_helados(self):
+        time.sleep(1)
+        self.click_agregar_helado()
+        time.sleep(1)
+        self.click_agregar_helado()
+
+    def leer_datos_del_conductor(self):
+        WebDriverWait(self.driver, 45).until(EC.visibility_of_element_located(self.nombre_conductor))
+        conductor = self.leer_nombre_conductor()
+        texto = self.leer_texto_buscando_automovil()
+        return [conductor,texto]
